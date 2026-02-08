@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="ur" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Raazdar Mohabbat - Husny Kanwal</title>
+    
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <style>
+        /* CSS YAHAN HAI */
+        :root { --main-pink: #f06272; --bg: #ffffff; }
+        body { margin: 0; font-family: sans-serif; background: var(--bg); transition: 0.3s; overflow-x: hidden; }
+        body.dark { background: #1a1a1a; color: white; }
+
+        .app-header {
+            background: var(--main-pink); color: white; padding: 12px;
+            display: flex; align-items: center; justify-content: space-between;
+            position: sticky; top: 0; z-index: 100;
+        }
+
+        .header-tools { display: flex; align-items: center; gap: 5px; }
+        .header-tools input { width: 50px; border: none; padding: 5px; border-radius: 4px; }
+        
+        .home-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; padding: 20px; }
+        .feature-card {
+            background: var(--main-pink); color: white; border-radius: 15px; height: 130px;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1); cursor: pointer;
+        }
+        .feature-card i { font-size: 35px; margin-bottom: 8px; }
+
+        #novel-container { display: flex; flex-direction: column; align-items: center; padding: 10px; }
+        canvas { max-width: 98%; margin-bottom: 15px; box-shadow: 0 4px 12px rgba(0,0,0,0.2); background: white; }
+
+        .footer { position: fixed; bottom: 0; width: 100%; background: white; padding: 10px; display: flex; justify-content: space-around; border-top: 1px solid #ddd; }
+        .btn { background: var(--main-pink); color: white; border: none; padding: 8px 15px; border-radius: 20px; }
+    </style>
+</head>
+<body>
+
+    <header class="app-header">
+        <i class="fas fa-bars"></i>
+        <span>Raazdar Mohabbat</span>
+        <div class="header-tools">
+            <input type="number" id="jumpPage" placeholder="P#">
+            <button onclick="searchAndJump()" style="background:none; border:none; color:white;"><i class="fas fa-search"></i></button>
+            <label for="pdfFile"><i class="fas fa-file-upload" style="cursor:pointer; font-size: 20px;"></i></label>
+            <input type="file" id="pdfFile" accept="application/pdf" hidden>
+        </div>
+    </header>
+
+    <div id="home-view">
+        <div class="home-grid">
+            <div class="feature-card" onclick="alert('Pehle PDF upload karein!')"><i class="fas fa-book-open"></i><span>Start Reading</span></div>
+            <div class="feature-card" onclick="document.body.classList.toggle('dark')"><i class="fas fa-moon"></i><span>Night Mode</span></div>
+            <div class="feature-card"><i class="fas fa-star"></i><span>Rate Us</span></div>
+            <div class="feature-card"><i class="fas fa-share-alt"></i><span>Share Novel</span></div>
+            <div class="feature-card" style="grid-column: span 2; height: 90px;"><i class="fas fa-list"></i><span>More Novels</span></div>
+        </div>
+        <center><p>Writer: <b>Husny Kanwal</b></p></center>
+    </div>
+
+    <div id="reader-view" style="display:none;">
+        <div id="novel-container"></div>
+        <div class="footer">
+            <button class="btn" onclick="zoomIn()">Zoom +</button>
+            <span id="stat">0 / 7174</span>
+            <button class="btn" onclick="zoomOut()">Zoom -</button>
+        </div>
+    </div>
+
+    <script>
+        /* JAVASCRIPT YAHAN HAI */
+        let pdfDoc = null, scale = 1.2;
+        const container = document.getElementById('novel-container');
+
+        document.getElementById('pdfFile').onchange = async (e) => {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = async function() {
+                    const data = new Uint8Array(this.result);
+                    pdfDoc = await pdfjsLib.getDocument(data).promise;
+                    document.getElementById('stat').innerText = `1 / ${pdfDoc.numPages}`;
+                    document.getElementById('home-view').style.display = 'none';
+                    document.getElementById('reader-view').style.display = 'block';
+                    renderAll();
+                };
+                reader.readAsArrayBuffer(file);
+            }
+        };
+
+        async function renderAll() {
+            container.innerHTML = 'Loading Pages...';
+            for (let i = 1; i <= pdfDoc.numPages; i++) {
+                const page = await pdfDoc.getPage(i);
+                const viewport = page.getViewport({ scale: scale });
+                const canvas = document.createElement('canvas');
+                canvas.id = 'page-' + i;
+                const context = canvas.getContext('2d');
+                canvas.height = viewport.height;
+                canvas.width = viewport.width;
+                await page.render({ canvasContext: context, viewport: viewport }).promise;
+                container.appendChild(canvas);
+                if(i==1) container.firstChild.remove();
+            }
+        }
+
+        function searchAndJump() {
+            const n = document.getElementById('jumpPage').value;
+            const el = document.getElementById('page-' + n);
+            if(el) el.scrollIntoView({behavior: 'smooth'});
+        }
+
+        function zoomIn() { scale += 0.2; renderAll(); }
+        function zoomOut() { scale -= 0.2; renderAll(); }
+    </script>
+</body>
+</html>
+index.html
